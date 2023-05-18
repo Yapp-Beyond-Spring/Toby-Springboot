@@ -40,13 +40,13 @@ public class HellobootApplication {
 public class HelloController {
   private final HelloService helloService;
 
-	// 생성자를 통해 의존성 주입
+  // 생성자를 통해 의존성 주입
   public HelloController(HelloService helloService) {
     this.helloService = helloService;
   }
 
   public String hello(String name) {
-		// null 체크 후 메소드 요청
+    // null 체크 후 메소드 요청
     return helloService.sayHello(Objects.requireNonNull(name));
   }
 }
@@ -58,7 +58,7 @@ public interface HelloService {
 public class SimpleHelloService implements HelloService {
   @Override
   public String sayHello(String name) {
-		// 비즈니스 로직 수행
+    // 비즈니스 로직 수행
     return "Hello " + name;
   }
 }
@@ -82,16 +82,16 @@ public class SimpleHelloService implements HelloService {
 public class HelloController {
   private final HelloService helloService;
 
-	// 생성자를 통해 의존성 주입
+  // 생성자를 통해 의존성 주입
   public HelloController(HelloService helloService) {
     this.helloService = helloService;
   }
 
-	@GetMapping // 매핑 정보 추가
-	// @RequestMapping(value = "/hello", method = RequestMethod.GET)
-	@ResponseBody // body 응답
+  @GetMapping // 매핑 정보 추가
+  // @RequestMapping(value = "/hello", method = RequestMethod.GET)
+  @ResponseBody // body 응답
   public String hello(String name) {
-		// null 체크 후 메소드 요청
+    // null 체크 후 메소드 요청
     return helloService.sayHello(Objects.requireNonNull(name));
   }
 }
