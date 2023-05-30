@@ -164,3 +164,197 @@ public class JettyWebServerConfig {
 ```
 
 ![Untitled 1](https://github.com/Yapp-Beyond-Spring/Toby-Springboot/assets/77145383/3156e912-2239-4e41-a622-ff5e718ec5f1)
+
+# 테스트 1. Conditional 어노테이션 빈 등록 테스트
+
+```java
+public class ConfigurationTest {
+  @Test
+  void Config1_빈으로_등록되었는지_확인() {
+    AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext();
+    ac.register(Config1.class);
+    ac.refresh();
+
+    ac.getBean(MyBean.class);  // 테스트 성공 (빈 등록 성공)
+  }
+
+  @Test
+  void Config2_빈으로_등록되었는지_확인() {
+    AnnotationConfigApplicationContext ac = new AnnotationConfigApplicationContext();
+    ac.register(Config2.class);
+    ac.refresh();
+
+    ac.getBean(MyBean.class);  // 테스트 실패 (빈 등록 안됨)
+  }
+
+  @Test
+  void ContextRunner_활용하여_빈_확인() {
+    // config1
+    ApplicationContextRunner contextRunner = new ApplicationContextRunner();
+    contextRunner.withUserConfiguration(Config1.class)
+        .run(context -> {
+            // 빈 있음
+            assertThat(context).hasSingleBean(MyBean.class);
+            assertThat(context).hasSingleBean(Config1.class);
+        });
+
+    // config2
+    new ApplicationContextRunner().withUserConfiguration(Config2.class)
+        .run(context -> {
+            // 빈 없음
+            assertThat(context).doesNotHaveBean(MyBean.class);
+            assertThat(context).doesNotHaveBean(Config2.class);
+        });
+  }
+
+  @Configuration
+  @Conditional(TrueCondition.class)   // true 반환 (빈 등록 O)
+  static class Config1 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  @Configuration
+  @Conditional(FalseCondition.class)  // false 반환 (빈 등록 X)
+  static class Config2 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  static class MyBean() { }
+
+  static class TrueCondition implements Condition {
+    @Override
+    public boolean matches(ConditionContext context, AnnotatedTypeMetaData metadata) {
+      return true;
+    }
+  }
+
+  static class FalseCondition implements Condition {
+    ... // 생략 return false;
+  }		
+}
+```
+
+# 테스트 2. CustomConditional 어노테이션
+
+```java
+public class ConfigurationTest {
+  @Test
+  void Config1_빈으로_등록되었는지_확인() {
+    ...
+  }
+
+  @Test
+  void Config2_빈으로_등록되었는지_확인() {
+    ...
+  }
+
+  @Test
+  void ContextRunner_활용하여_빈_확인() {
+    ...
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  @Conditional(TrueCondition.class)
+  @interface TrueConditional {}
+
+  @Configuration
+  @TrueConditional
+  static class Config1 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  @Conditional(FalseCondition.class)
+  @interface FalseConditional {}
+
+  @Configuration
+  @FalseConditional
+  static class Config2 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  static class MyBean() { }
+
+  static class TrueCondition implements Condition {
+    ... // 생략 return true;
+  }
+
+  static class FalseCondition implements Condition {
+    ... // 생략 return false;
+  }		
+}
+```
+
+# 테스트 3. 동적으로 받도록
+
+```java
+public class ConfigurationTest {
+  @Test
+  void Config1_빈으로_등록되었는지_확인() {
+    ...
+  }
+
+  @Test
+  void Config2_빈으로_등록되었는지_확인() {
+    ...
+  }
+
+  @Test
+  void ContextRunner_활용하여_빈_확인() {
+    ...
+  }
+
+  @Retention(RetentionPolicy.RUNTIME)
+  @Target(ElementType.TYPE)
+  @Conditional(TrueCondition.class)
+  @interface BooleanConditional {
+    boolean value();  // 어노테이션 입력값
+  }
+
+  @Configuration
+  @BooleanConditional(true)
+  static class Config1 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  @Configuration
+  @BooleanConditional(false)
+  static class Config2 {
+    @Bean
+    MyBean myBean() {
+      return new MyBean();
+    }
+  }
+
+  static class MyBean() { }
+
+  static class BooleanCondition implements Condition {
+    @Override
+    public boolean matches(ConditionContext context, AnnotatedTypeMetaData metadata) {
+      // Condition 클래스가 사용된 BooleanConditional 어노테이션 안에 있는 속성값을 전부 가져옴
+      Map<String, Object> annotationAttributes = 
+          metadata.getAnnotaionAttributes(BooleanConditional.class.getName());
+      // value 이름의 속성 값을 boolean으로 캐스팅하여 가져옴
+      Boolean value = (Boolean) annotationAttributes.get("value");
+      return value;
+    }
+  }
+}
+```
